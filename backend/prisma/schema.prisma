@@ -1,0 +1,51 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum JobStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+model ImageJob {
+  id                String   @id @default(uuid())
+  originalFilename  String
+  storedPath        String
+  fileSizeBytes     Int
+  mimeType          String
+  status            JobStatus @default(pending)
+  phash             String?
+  failureReason     String?
+  uploadedAt        DateTime @default(now())
+  startedAt         DateTime?
+  completedAt       DateTime?
+  failedAt          DateTime?
+  retryCount        Int      @default(0)
+
+  analysisResult    AnalysisResult?
+
+  @@index([status])
+  @@index([phash])
+}
+
+model AnalysisResult {
+  id                    String   @id @default(uuid())
+  jobId                 String   @unique
+  job                   ImageJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  overallStatus         String   // clean, flagged, rejected
+  issueCount            Int
+  checksJson            Json     // Array of individual check results
+  metadataJson          Json     // Extracted EXIF/image metadata
+  processingDurationMs  Int
+  createdAt             DateTime @default(now())
+}
