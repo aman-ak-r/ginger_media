@@ -1,0 +1,12 @@
+node_modules
+dist
+uploads
+logs
+.env
+.git
+.gitignore
+README.md
+Dockerfile
+docker-compose*.yml
+test-db.ts
+seed-db.ts
