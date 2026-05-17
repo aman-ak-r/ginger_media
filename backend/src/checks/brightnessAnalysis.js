@@ -1,0 +1,39 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.brightnessAnalysis = brightnessAnalysis;
+const sharp_1 = require("sharp");
+const index_1 = require("./index");
+async function brightnessAnalysis(image, metadata) {
+    try {
+        const stats = await image.clone().grayscale().stats();
+        const mean = stats.channels[0].mean;
+        let status = 'passed';
+        let detail = `Brightness level: ${mean.toFixed(2)}/255`;
+        let confidence = 1;
+        if (mean < 50) {
+            status = 'warning';
+            detail = `Image is underexposed. Mean brightness: ${mean.toFixed(2)}/255`;
+            confidence = Math.max(0, mean / 50);
+        }
+        else if (mean > 220) {
+            status = 'warning';
+            detail = `Image is overexposed. Mean brightness: ${mean.toFixed(2)}/255`;
+            confidence = Math.max(0, (255 - mean) / 35);
+        }
+        return {
+            check: 'brightness_analysis',
+            status,
+            confidence,
+            detail,
+        };
+    }
+    catch (error) {
+        return {
+            check: 'brightness_analysis',
+            status: 'warning',
+            confidence: 0,
+            detail: `Brightness analysis failed: ${error.message}`,
+        };
+    }
+}
+//# sourceMappingURL=brightnessAnalysis.js.map
