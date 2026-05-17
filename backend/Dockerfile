@@ -44,6 +44,7 @@ RUN apt-get update && apt-get install -y \
 COPY package*.json ./
 COPY prisma.config.* ./
 COPY prisma ./prisma/
+COPY public ./public
 
 # Install only production dependencies
 RUN npm ci --only=production
