@@ -5,11 +5,16 @@ import { AppError } from './utils/errors.js';
 import uploadRoutes from './api/routes/upload.routes.js';
 import resultsRoutes from './api/routes/results.routes.js';
 
+import { rateLimiter } from './api/middleware/rateLimiter.js';
+
 dotenv.config();
 
 const app = express();
 
 app.use(express.json());
+
+// Serve Static Visual Dashboard
+app.use(express.static('public'));
 
 // Request logger middleware
 app.use((req, res, next) => {
@@ -21,8 +26,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Routes
-app.use('/api/uploads', uploadRoutes);
+// Routes with rate limiting registered for uploads
+app.use('/api/uploads', rateLimiter, uploadRoutes);
 app.use('/api/results', resultsRoutes);
 
 // 404 handler

@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vehicle Media Auditor • Real-time Quality & Anti-Fraud Console</title>
+  <!-- Google Fonts Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --bg-color: #0d111a;
+      --card-bg: rgba(22, 28, 45, 0.45);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --glass-glow: rgba(0, 242, 254, 0.15);
+      
+      --primary: #00f2fe;
+      --primary-gradient: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+      --accent: #9b51e0;
+      --accent-gradient: linear-gradient(135deg, #9b51e0 0%, #f78da7 100%);
+      
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: 'Outfit', sans-serif;
+      overflow-x: hidden;
+      min-height: 100vh;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(0, 242, 254, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(155, 81, 224, 0.05) 0%, transparent 45%);
+    }
+
+    /* Glassmorphism Containers */
+    .glass-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .glass-card:hover {
+      border-color: rgba(0, 242, 254, 0.25);
+      box-shadow: 0 10px 30px rgba(0, 242, 254, 0.05);
+    }
+
+    /* Layout Structure */
+    header {
+      padding: 24px 5%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--card-border);
+      background: rgba(13, 17, 26, 0.8);
+      backdrop-filter: blur(8px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      background: var(--primary-gradient);
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #0d111a;
+      font-weight: 700;
+      font-size: 22px;
+      box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+    }
+
+    .logo-text h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .logo-text p {
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    main {
+      max-width: 1400px;
+      margin: 40px auto;
+      padding: 0 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    /* Top KPI Cards */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .kpi-card {
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .kpi-details h3 {
+      font-size: 14px;
+      color: var(--text-muted);
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .kpi-details div {
+      font-size: 32px;
+      font-weight: 700;
+    }
+
+    .kpi-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+
+    .kpi-blue { background: rgba(0, 242, 254, 0.1); color: var(--primary); }
+    .kpi-purple { background: rgba(155, 81, 224, 0.1); color: var(--accent); }
+    .kpi-green { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+    .kpi-red { background: rgba(239, 68, 68, 0.1); color: var(--error); }
+
+    /* Core Panel Split */
+    .dashboard-split {
+      display: grid;
+      grid-template-columns: 1fr 1.8fr;
+      gap: 32px;
+    }
+
+    @media (max-width: 1024px) {
+      .dashboard-split {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Uploader Container */
+    .upload-zone {
+      border: 2px dashed rgba(0, 242, 254, 0.3);
+      padding: 48px 24px;
+      text-align: center;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      transition: all 0.3s ease;
+      background: rgba(0, 242, 254, 0.01);
+    }
+
+    .upload-zone.dragover {
+      background: rgba(0, 242, 254, 0.05);
+      border-color: var(--primary);
+      box-shadow: 0 0 20px rgba(0, 242, 254, 0.15) inset;
+    }
+
+    .upload-icon {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.03);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+      transition: transform 0.3s ease;
+    }
+
+    .upload-zone:hover .upload-icon {
+      transform: scale(1.1) rotate(5deg);
+    }
+
+    .upload-btn {
+      background: var(--primary-gradient);
+      color: #0d111a;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 5px 15px rgba(0, 242, 254, 0.3);
+      transition: transform 0.2s ease;
+    }
+
+    .upload-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* Live queue table */
+    .queue-container {
+      padding: 24px;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .panel-title {
+      font-size: 18px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.3; }
+      50% { opacity: 1; }
+      100% { opacity: 0.3; }
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th {
+      color: var(--text-muted);
+      font-weight: 400;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    td {
+      padding: 16px;
+      border-bottom: 1px solid var(--card-border);
+      font-size: 14px;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge-pending { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+    .badge-processing { background: rgba(0, 242, 254, 0.1); color: var(--primary); }
+    .badge-completed { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+    .badge-failed { background: rgba(239, 68, 68, 0.1); color: var(--error); }
+
+    .action-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      padding: 8px 14px;
+      border-radius: 8px;
+      color: var(--text-main);
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 12px;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .action-btn:hover {
+      background: rgba(0, 242, 254, 0.1);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    /* Diagnostics Drawer Sidebar */
+    .drawer {
+      position: fixed;
+      top: 0;
+      right: -450px;
+      width: 450px;
+      height: 100vh;
+      background: #0f1423;
+      border-left: 1px solid var(--card-border);
+      box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      padding: 32px;
+      overflow-y: auto;
+    }
+
+    .drawer.active {
+      right: 0;
+    }
+
+    .drawer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .close-drawer {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 24px;
+    }
+
+    .close-drawer:hover {
+      color: var(--text-main);
+    }
+
+    .diagnostics-title {
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .diag-metric {
+      margin-bottom: 24px;
+    }
+
+    .diag-metric-title {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .progress-bar-bg {
+      background: rgba(255, 255, 255, 0.05);
+      height: 8px;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .diag-metadata {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 16px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #38bdf8;
+      white-space: pre-wrap;
+    }
+
+    /* Modal Backdrop overlay */
+    .backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 999;
+      display: none;
+    }
+
+    .backdrop.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo-container">
+      <div class="logo-icon">V</div>
+      <div class="logo-text">
+        <h1>Vehicle Media Auditor</h1>
+        <p>Anti-Fraud & Quality Assurance Dashboard</p>
+      </div>
+    </div>
+    <div style="font-size: 14px; display: flex; align-items: center; gap: 8px;">
+      <span class="live-dot"></span>
+      <span style="color: var(--text-muted);">Queue Monitor Active</span>
+    </div>
+  </header>
+
+  <main>
+    <!-- KPIs -->
+    <div class="metrics-grid">
+      <div class="glass-card kpi-card">
+        <div class="kpi-details">
+          <h3>Total Audited</h3>
+          <div id="stat-total">0</div>
+        </div>
+        <div class="kpi-icon kpi-blue">
+          <i data-lucide="image"></i>
+        </div>
+      </div>
+      <div class="glass-card kpi-card">
+        <div class="kpi-details">
+          <h3>Clean Pass Rate</h3>
+          <div id="stat-pass">0%</div>
+        </div>
+        <div class="kpi-icon kpi-green">
+          <i data-lucide="check-circle"></i>
+        </div>
+      </div>
+      <div class="glass-card kpi-card">
+        <div class="kpi-details">
+          <h3>Alerts Flagged</h3>
+          <div id="stat-alerts">0</div>
+        </div>
+        <div class="kpi-icon kpi-red">
+          <i data-lucide="alert-triangle"></i>
+        </div>
+      </div>
+      <div class="glass-card kpi-card">
+        <div class="kpi-details">
+          <h3>Avg Processing Speed</h3>
+          <div id="stat-speed">0 ms</div>
+        </div>
+        <div class="kpi-icon kpi-purple">
+          <i data-lucide="zap"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Section -->
+    <div class="dashboard-split">
+      <!-- Upload Section -->
+      <div class="glass-card upload-zone" id="drop-zone">
+        <input type="file" id="file-input" style="display: none;" accept="image/*">
+        <div class="upload-icon">
+          <i data-lucide="upload-cloud" style="width: 32px; height: 32px;"></i>
+        </div>
+        <h2 style="font-size: 18px; font-weight: 600;">Drag & Drop Vehicle Image</h2>
+        <p style="color: var(--text-muted); font-size: 13px;">Accepts JPEGs, PNGs, and WebPs up to 10MB</p>
+        <button class="upload-btn" onclick="document.getElementById('file-input').click()">Browse Local Storage</button>
+      </div>
+
+      <!-- Live Job Queue Table -->
+      <div class="glass-card queue-container">
+        <div class="panel-header">
+          <h2 class="panel-title"><i data-lucide="activity"></i> Audit Log & Processing Queue</h2>
+        </div>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Job ID</th>
+                <th>File details</th>
+                <th>Status</th>
+                <th>Validation</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="queue-body">
+              <tr>
+                <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 40px;">
+                  No audited images in current session. Upload an image to analyze.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Sidebar Drawer Diagnostics overlay -->
+  <div class="backdrop" id="backdrop" onclick="closeDrawer()"></div>
+  <div class="drawer" id="drawer">
+    <div class="drawer-header">
+      <div class="diagnostics-title">Quality Audit Dials</div>
+      <button class="close-drawer" onclick="closeDrawer()">&times;</button>
+    </div>
+    <div id="drawer-body">
+      <!-- Dynamic Audit indicators -->
+    </div>
+  </div>
+
+  <script>
+    // Local Session Job Tracking List
+    const sessionJobs = [];
+
+    // Setup Lucide icons
+    lucide.createIcons();
+
+    // DOM Drag-and-Drop Triggers
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      if (e.dataTransfer.files.length > 0) {
+        handleUpload(e.dataTransfer.files[0]);
+      }
+    });
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length > 0) {
+        handleUpload(fileInput.files[0]);
+      }
+    });
+
+    // Upload logic to the API
+    async function handleUpload(file) {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      // Instantly insert pending job in UI for reactive interface
+      const temporaryId = 'uploading-' + Date.now();
+      const mockJob = {
+        jobId: temporaryId,
+        fileName: file.name,
+        fileSize: (file.size / 1024).toFixed(1) + ' KB',
+        status: 'pending',
+        overallStatus: 'pending',
+        processingDurationMs: null,
+        checks: []
+      };
+
+      sessionJobs.unshift(mockJob);
+      updateDashboard();
+
+      try {
+        const response = await fetch('/api/uploads', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (response.status === 429) {
+          const errData = await response.json();
+          alert(`Rate Limit Warning: ${errData.message}`);
+          removeJob(temporaryId);
+          return;
+        }
+
+        const data = await response.json();
+        
+        // Update mock job with real database job ID
+        const index = sessionJobs.findIndex(j => j.jobId === temporaryId);
+        if (index !== -1) {
+          sessionJobs[index].jobId = data.jobId;
+        }
+        
+        // Start polling queue
+        pollJob(data.jobId);
+
+      } catch (err) {
+        console.error('Upload Error:', err);
+        const index = sessionJobs.findIndex(j => j.jobId === temporaryId);
+        if (index !== -1) {
+          sessionJobs[index].status = 'failed';
+          sessionJobs[index].overallStatus = 'error';
+        }
+        updateDashboard();
+      }
+    }
+
+    function removeJob(jobId) {
+      const index = sessionJobs.findIndex(j => j.jobId === jobId);
+      if (index !== -1) sessionJobs.splice(index, 1);
+      updateDashboard();
+    }
+
+    // Queue Poller
+    async function pollJob(jobId) {
+      const timer = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/uploads/${jobId}/status`);
+          const statusData = await res.json();
+
+          const jobIndex = sessionJobs.findIndex(j => j.jobId === jobId);
+          if (jobIndex === -1) return clearInterval(timer);
+
+          sessionJobs[jobIndex].status = statusData.status;
+
+          if (statusData.status === 'completed' || statusData.status === 'failed') {
+            clearInterval(timer);
+            // Fetch final full analysis results
+            await fetchResults(jobId);
+          } else {
+            updateDashboard();
+          }
+
+        } catch (err) {
+          console.error('Polling Error:', err);
+          clearInterval(timer);
+        }
+      }, 1000);
+    }
+
+    // Fetch Completed analysis audit results
+    async function fetchResults(jobId) {
+      try {
+        const res = await fetch(`/api/uploads/${jobId}/results`);
+        const resultData = await res.json();
+
+        const jobIndex = sessionJobs.findIndex(j => j.jobId === jobId);
+        if (jobIndex !== -1) {
+          sessionJobs[jobIndex].status = resultData.status;
+          sessionJobs[jobIndex].overallStatus = resultData.overallStatus;
+          sessionJobs[jobIndex].processingDurationMs = resultData.processingDurationMs;
+          sessionJobs[jobIndex].checks = resultData.checks;
+          sessionJobs[jobIndex].metadata = resultData.metadata;
+        }
+        updateDashboard();
+
+      } catch (err) {
+        console.error('Results Fetch Error:', err);
+      }
+    }
+
+    // Update Live Dashboard metrics cards
+    function updateDashboard() {
+      // 1. Render Table Rows
+      const tbody = document.getElementById('queue-body');
+      if (sessionJobs.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 40px;">
+              No audited images in current session. Upload an image to analyze.
+            </td>
+          </tr>`;
+        return;
+      }
+
+      tbody.innerHTML = sessionJobs.map(job => {
+        const displayId = job.jobId.startsWith('uploading-') ? 'Uploading...' : job.jobId.substring(0, 8) + '...';
+        const isAuditable = job.status === 'completed' || job.status === 'failed';
+        
+        let valBadge = `<span class="badge" style="background: rgba(255,255,255,0.03); color: var(--text-muted);">TBD</span>`;
+        if (job.overallStatus === 'clean') {
+          valBadge = `<span class="badge" style="background: rgba(16,185,129,0.1); color: var(--success);"><i data-lucide="check" style="width:12px;height:12px;"></i> Clean</span>`;
+        } else if (job.overallStatus === 'warning') {
+          valBadge = `<span class="badge" style="background: rgba(245,158,11,0.1); color: var(--warning);"><i data-lucide="alert-circle" style="width:12px;height:12px;"></i> Warning</span>`;
+        } else if (job.overallStatus === 'error') {
+          valBadge = `<span class="badge" style="background: rgba(239,68,68,0.1); color: var(--error);"><i data-lucide="shield-alert" style="width:12px;height:12px;"></i> Failed</span>`;
+        }
+
+        return `
+          <tr>
+            <td style="font-family: monospace; font-weight:600;">${displayId}</td>
+            <td>
+              <div style="font-weight:600; color:var(--text-main);">${job.fileName}</div>
+              <div style="font-size:11px; color:var(--text-muted);">${job.fileSize || 'Processing...'}</div>
+            </td>
+            <td>
+              <span class="badge badge-${job.status}">${job.status}</span>
+            </td>
+            <td>${valBadge}</td>
+            <td>
+              <button class="action-btn" onclick="openDiagnostics('${job.jobId}')" ${!isAuditable ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''}>
+                <i data-lucide="activity" style="width:14px; height:14px;"></i> Inspect
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+
+      // 2. Recalculate KPIs
+      const finished = sessionJobs.filter(j => j.status === 'completed' || j.status === 'failed');
+      const total = finished.length;
+      
+      document.getElementById('stat-total').innerText = total;
+
+      if (total > 0) {
+        const passes = finished.filter(j => j.overallStatus === 'clean').length;
+        const warnings = finished.filter(j => j.overallStatus === 'warning').length;
+        const fails = finished.filter(j => j.overallStatus === 'error').length;
+        const avgSpeed = finished.reduce((acc, cur) => acc + (cur.processingDurationMs || 0), 0) / total;
+
+        document.getElementById('stat-pass').innerText = Math.round((passes / total) * 100) + '%';
+        document.getElementById('stat-alerts').innerText = warnings + fails;
+        document.getElementById('stat-speed').innerText = Math.round(avgSpeed) + ' ms';
+      } else {
+        document.getElementById('stat-pass').innerText = '0%';
+        document.getElementById('stat-alerts').innerText = '0';
+        document.getElementById('stat-speed').innerText = '0 ms';
+      }
+    }
+
+    // Diagnostics sliding sidebar controller
+    function openDiagnostics(jobId) {
+      const job = sessionJobs.find(j => j.jobId === jobId);
+      if (!job) return;
+
+      const drawer = document.getElementById('drawer');
+      const backdrop = document.getElementById('backdrop');
+      const body = document.getElementById('drawer-body');
+
+      let checksHtml = job.checks.map(c => {
+        let color = 'var(--success)';
+        if (c.status === 'warning') color = 'var(--warning)';
+        if (c.status === 'failed') color = 'var(--error)';
+
+        const barWidth = Math.round((c.confidence || 0) * 100);
+
+        return `
+          <div class="diag-metric">
+            <div class="diag-metric-title">
+              <span style="font-weight:600; text-transform:capitalize;">${c.check.replace('_', ' ')}</span>
+              <span style="color: ${color}; font-weight:600;">${barWidth}% Match</span>
+            </div>
+            <div class="progress-bar-bg" style="margin-bottom:8px;">
+              <div class="progress-bar-fill" style="width: ${barWidth}%; background-color: ${color};"></div>
+            </div>
+            <p style="font-size:12px; color: var(--text-muted);">${c.detail}</p>
+          </div>
+        `;
+      }).join('');
+
+      let metaJson = JSON.stringify(job.metadata || {}, null, 2);
+
+      body.innerHTML = `
+        <div style="margin-bottom: 24px;">
+          <div style="font-size:12px; color: var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">File Name</div>
+          <div style="font-size:16px; font-weight:600; word-break: break-all; margin-bottom:12px;">${job.fileName}</div>
+          <div style="font-size:12px; color: var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Performance Duration</div>
+          <div style="font-size:14px; font-weight:600; color:var(--primary);">${job.processingDurationMs} ms</div>
+        </div>
+
+        <div style="margin-bottom: 32px;">
+          <h3 style="font-size:15px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:16px;">Core Validations</h3>
+          ${checksHtml}
+        </div>
+
+        <div>
+          <h3 style="font-size:15px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:16px;">Exif & Image Parameters</h3>
+          <pre class="diag-metadata">${metaJson}</pre>
+        </div>
+      `;
+
+      drawer.classList.add('active');
+      backdrop.classList.add('active');
+    }
+
+    function closeDrawer() {
+      document.getElementById('drawer').classList.remove('active');
+      document.getElementById('backdrop').classList.remove('active');
+    }
+  </script>
+</body>
+</html>

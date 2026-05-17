@@ -1,6 +1,6 @@
-# Intelligent Media Processing Pipeline
+# Intelligent Vehicle Media Auditor
 
-A high-performance asynchronous image analysis pipeline and background worker system designed to process, analyze, and validate vehicle uploads.
+A high-performance asynchronous image analysis pipeline, anti-fraud auditor, and background worker system designed to process, analyze, and validate vehicle uploads.
 
 * **Git Repository**: [https://github.com/aman-ak-r/ginger_media](https://github.com/aman-ak-r/ginger_media)
 
@@ -11,11 +11,11 @@ A high-performance asynchronous image analysis pipeline and background worker sy
 The backend is designed around an asynchronous, decoupled queue architecture that isolates CPU-intensive image processing from REST API operations, ensuring high availability and robust performance.
 
 ### 1. Service & Processing Flow
-The lifecycle of an image upload proceeds through a highly structured multi-stage validation and queue cycle:
+The lifecycle of an image upload proceeds through a highly structured multi-stage validation, queue, and UI diagnostics cycle:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                          Client (API Consumers)                             │
+│                          Client (Web UI Dashboard)                          │
 └──────────────────────────────────┬──────────────────────────────────────────┘
                                    │  POST /api/uploads (multipart/form-data)
                                    ▼
@@ -44,11 +44,13 @@ The lifecycle of an image upload proceeds through a highly structured multi-stag
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-1.  **Ingress & Validation**: The client submits a `POST /api/uploads` request containing the multipart file buffer. Express intercepts the request, Multer performs size validations, and custom middleware inspects the file stream.
-2.  **State Initialization & Disk Persistence**: The server persistently writes the raw file to `/uploads` under a unique UUID-based folder, inserts a `pending` status log inside PostgreSQL, and returns a `201 Created` ticket with the `jobId` to the client.
-3.  **Queue Scheduling**: An asynchronous event task is pushed to the BullMQ Redis queue containing the metadata references.
+1.  **Ingress, Rate-Limiting & Validation**: The client submits a `POST /api/uploads` request containing the multipart file buffer. Express intercepts the request, the custom sliding-window **Rate Limiter** evaluates historical IP timestamps, Multer performs size validations, and custom middleware inspects the file stream.
+2.  **State Initialization & Disk Persistence**: The server persistently writes the raw file to `/uploads` under a unique UUID-based folder, inserts a `pending` status log inside PostgreSQL, enqueues the task inside Redis, and returns a `201 Created` ticket with the `jobId` to the client.
+3.  **Real-time Polling & Analytics Dashboard**: The visual web dashboard catches the returned ID and polls `GET /api/uploads/:jobId/status` every 1 second.
 4.  **Asynchronous Analysis**: The worker thread pulls the task lease, updates the job status to `processing`, and runs all analysis modules (blur edge convolutions, perceptual duplicate hashing, brightness calculations, and EXIF checks) concurrently.
-5.  **Finalization**: The worker logs individual check parameters inside `analysis_results` and updates the `ImageJob` record to `completed` or `failed` with a final quality status tag. The client can poll `GET /api/uploads/:jobId/results` to view the comprehensive audit.
+5.  **Finalization**: The worker logs individual check parameters inside `analysis_results` and updates the `ImageJob` record to `completed` or `failed` with a final quality status tag. The client dashboard picks up the finished status and queries `GET /api/uploads/:jobId/results` to slide open the comprehensive audit sidebar panel.
+
+---
 
 ### 2. Queue Strategy
 To secure atomic task delivery and avoid event-loop blocking, we leverage **BullMQ** backed by a high-performance Redis cache broker:
@@ -56,17 +58,22 @@ To secure atomic task delivery and avoid event-loop blocking, we leverage **Bull
 *   **Decoupled Multi-Process Support**: While packaged inside a single container for resource efficiency in this deployment, the API server and the BullMQ workers are structurally isolated. They communicate exclusively via Redis TCP connections, allowing workers to scale out horizontally under load without modification.
 *   **Backoff Retries**: Transient failures (like database connection pool exhaustion) automatically trigger exponential backoff retries (e.g. retry 1 after 2s, retry 2 after 4s) to guarantee eventual consistency.
 
+---
+
 ### 3. Major Design Decisions
 
+*   **Integrated HTML/JS Glassmorphic Dashboard UI**:
+    *   *Problem*: Spawning a separate React/Vite container increases staging complexity, increases build times, and requires extra proxy setups.
+    *   *Decision*: We designed a visually jaw-dropping single-page application at `backend/public/` using premium CSS-glassmorphic styling, custom Lucide vector icons, dynamic HSL glow states, smooth slide-out drawers, and instant drag-and-drop file uploading. This is served directly by the Express process via `express.static('public')`, giving recruiters an out-of-the-box dynamic visual audit experience at `http://localhost:3000` with zero extra steps.
+*   **Custom In-Memory Sliding-Window Rate Limiter**:
+    *   *Problem*: Adding external rate-limiting packages increases dependencies, raises CommonJS/ESM module import conflicts, and creates extra configuration overhead.
+    *   *Decision*: We wrote a clean, dependency-free sliding-window rate limiting middleware in `src/api/middleware/rateLimiter.ts`. It maps historical IP timestamps inside an memory cache and filters out timestamps older than 60s, returning a detailed `429 Too Many Requests` code if clients upload more than `10` images per minute.
 *   **Perceptual Hashing (pHash) over Cryptographic Hashing (MD5/SHA-256)**: 
     *   *Problem*: Cryptographic hashes change entirely with any re-encoding. Saving a vehicle photo at JPEG quality 90 vs 95 changes the SHA-256 hash completely.
     *   *Decision*: We generate a 64-bit gradient Perceptual Hash (pHash). This downscales the image and evaluates intensity differences between pixels, catching visually identical duplicates even if they have been cropped, compressed, or resized.
 *   **Prisma 7 WebAssembly Edge Adapters**:
     *   *Problem*: In Prisma 7, the traditional direct query engines are deprecated inside edge/container environments.
     *   *Decision*: We migrated the database layer to utilize a **WebAssembly-based client driver adapter** (`@prisma/adapter-pg` + standard `pg` Pool). This decouples the database engine from glibc/musl binary files, enabling compiled code to run cleanly inside slinned Docker containers.
-*   **Express HTTP & Queue Worker Co-location**:
-    *   *Problem*: Running separate Docker containers for the API and workers increases staging cost and orchestration overhead.
-    *   *Decision*: We designed a unified entry point (`src/index.ts`) that boots the Express server and the BullMQ worker loop in parallel. This simplifies scaling during testing while maintaining strict code decoupling.
 
 ---
 
@@ -79,7 +86,7 @@ Compiles the TypeScript code, executes database migrations, and boots all persis
 ```bash
 docker compose -f docker-compose.prod.yml up -d --build
 ```
-*   **API Endpoint**: `http://localhost:3000`
+*   **Visual Web Dashboard & API**: `http://localhost:3000`
 *   **PostgreSQL**: Mapped to host port `5433` (internal port `5432`)
 *   **Redis**: Mapped to host port `6379`
 
@@ -135,6 +142,7 @@ We have provided custom scripts in the root directory to verify database connect
 `POST /api/uploads`
 *   **Body**: `multipart/form-data`
 *   **Field**: `image` (File buffer, max 10MB)
+*   **Rate Limits**: Secured up to `10` uploads per minute per IP.
 
 #### Sample Curl Request:
 ```bash
@@ -221,7 +229,7 @@ curl http://localhost:3000/api/uploads/f5f242cb-b4e8-466d-a128-d3c52e46b9a8/resu
 ## ⚖️ Trade-offs & Operational Disclosures
 
 ### 1. What Was Intentionally Simplified
-*   **No Authentication Layer**: API routes are unauthenticated for staging simplicity. A production architecture would enforce API key validation or JWT headers.
+*   **No Multi-Role Authentication**: API routes are unauthenticated for staging simplicity. A production architecture would enforce API key validation or JWT headers.
 *   **Local File System Storage**: Images are written directly to local folders rather than dedicated cloud storage (like AWS S3).
 *   **Linear Duplicate Queries**: To verify duplicate hashes, the worker queries completed jobs from the database and runs Hamming calculations in memory. For massive scale, this would be delegated to a vector search database or localized Locality-Sensitive Hashing (LSH) indexing service.
 
