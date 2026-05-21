@@ -13,8 +13,21 @@ const app = express();
 
 app.use(express.json());
 
+// CORS Middleware (lightweight and 100% reliable)
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
 // Serve Static Visual Dashboard
 app.use(express.static('public'));
+app.use(express.static('../frontend/dist'));
 
 // Request logger middleware
 app.use((req, res, next) => {
