@@ -23,6 +23,8 @@ interface Job {
   metadata?: any;
 }
 
+const API_URL = import.meta.env.VITE_API_URL || '';
+
 export const App: React.FC = () => {
   const [sessionJobs, setSessionJobs] = useState<Job[]>([]);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
@@ -46,7 +48,7 @@ export const App: React.FC = () => {
     setSessionJobs((prev) => [mockJob, ...prev]);
 
     try {
-      const response = await fetch('/api/uploads', {
+      const response = await fetch(`${API_URL}/api/uploads`, {
         method: 'POST',
         body: formData,
       });
@@ -81,7 +83,7 @@ export const App: React.FC = () => {
   const pollJob = (jobId: string) => {
     const timer = setInterval(async () => {
       try {
-        const res = await fetch(`/api/uploads/${jobId}/status`);
+        const res = await fetch(`${API_URL}/api/uploads/${jobId}/status`);
         const statusData = await res.json();
 
         setSessionJobs((prev) => {
@@ -109,7 +111,7 @@ export const App: React.FC = () => {
   // Fetch final full analysis results
   const fetchResults = async (jobId: string) => {
     try {
-      const res = await fetch(`/api/uploads/${jobId}/results`);
+      const res = await fetch(`${API_URL}/api/uploads/${jobId}/results`);
       const resultData = await res.json();
 
       setSessionJobs((prev) =>
